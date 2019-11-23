@@ -1,0 +1,56 @@
+---
+title: "Relatório Prático - DataMiningR"
+author: "pfrozi"
+date: "November 23, 2019"
+output: html_document
+---
+
+# Relatório Prático - Data Mining R
+
+ * Familiarizar-se com um ambiente de apoio ao processo de descoberta de conhecimento;
+ * Executar  ações  necessárias  durante  o  processo de  descoberta  de conhecimento usando um dataset simples;
+ * Praticar análise de dados com o uso deregras de associação.
+
+## Primeira etapa: 
+
+Carregar o arquivo com o conjunto de dados sobre os passageiros e tripulantes que estavam no desastre do titanic:
+
+```{r loadfile, include=FALSE}
+load("titanic.raw.rdata")
+```
+
+O comando abaixo permite visualizar uma tabela com os dados desta base:
+
+```{r viewfile, include=FALSE}
+View(titanic.raw)
+```
+
+O comando `str` nos permitirá visualizar um resumo dos dados existentes na base. Analogamente ao comando `summuary`, ele apresentará um resumo abreviado e descritivo dos atributos que e tipos que serão considerados. Lembrando que a abreviação dos dados pode ser controlada pelo argumento `max.level` do método.
+
+```{r strabbrev}
+str(titanic.raw)
+```
+
+```{r strabbrev_maxlevel}
+str(titanic.raw, vec.len  = 2, list.len=3, give.length=3)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
