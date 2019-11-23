@@ -2,7 +2,9 @@
 title: "Relatório Prático - DataMiningR"
 author: "pfrozi"
 date: "November 23, 2019"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 # Relatório Prático - Data Mining R
@@ -18,14 +20,15 @@ Carregar o arquivo com o conjunto de dados sobre os passageiros e tripulantes qu
 ```{r loadfile, include=FALSE}
 load("titanic.raw.rdata")
 ```
-
+  
+  
 O comando abaixo permite visualizar uma tabela com os dados desta base:
 
 ```{r viewfile, include=FALSE}
 View(titanic.raw)
 ```
 
-O comando `str` nos permitirá visualizar um resumo dos dados existentes na base. Analogamente ao comando `summuary`, ele apresentará um resumo abreviado e descritivo dos atributos que e tipos que serão considerados. Lembrando que a abreviação dos dados pode ser controlada pelo argumento `max.level` do método.
+O comando `str` nos permitirá visualizar um resumo dos dados existentes na base. Analogamente ao comando `summuary`, ele apresentará um resumo abreviado e descritivo dos atributos que e tipos que serão considerados. Lembrando que a abreviação dos dados pode ser controlada pelo argumento `vec.len` do método.
 
 ```{r strabbrev}
 str(titanic.raw)
@@ -34,6 +37,13 @@ str(titanic.raw)
 ```{r strabbrev_maxlevel}
 str(titanic.raw, vec.len  = 2, list.len=3, give.length=3)
 ```
+
+## Q1: Informe o número de registros do arquivo, o número de atributos, e o tipo de dado de cada atributo.
+
+```{r summary}
+summary(titanic.raw)
+```
+
 
 ## R Markdown
 
