@@ -21,7 +21,6 @@ Carregar o arquivo com o conjunto de dados sobre os passageiros e tripulantes qu
 load("titanic.raw.rdata")
 ```
   
-  
 O comando abaixo permite visualizar uma tabela com os dados desta base:
 
 ```{r viewfile, include=FALSE}
@@ -38,29 +37,255 @@ str(titanic.raw)
 str(titanic.raw, vec.len  = 2, list.len=3, give.length=3)
 ```
 
-## Q1: Informe o número de registros do arquivo, o número de atributos, e o tipo de dado de cada atributo.
+### Q1: Informe o número de registros do arquivo, o número de atributos, e o tipo de dado de cada atributo.
 
 ```{r summary}
 summary(titanic.raw)
 ```
 
+ * Número de Registros: 2201
+ * Número de atributos: 4 (Class, Sex, Age, Survived)
+ * Tipo de dados:
+   * Class: { 1a Classe, 2a Classe, 3a Classe, Tripulação }
+   * Sex: { Masculino, Feminino }
+   * Age: { Adulto, Criança }
+   * Survived: { Sim, Não }
 
-## R Markdown
+### Q2: Diga pelo menos dois fatos interessante que o summary revelou sobre os passageiros do Titanic.
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r visualization1}
+# Visualizando a distribuicao dos passageiros por classe
+plot(titanic.raw$Class, main="Histograma - Distribuicao em Classes",
+xlab="Classes", ylab="Total passageiros",
+ylim=c(0,1000), las=0)
+# Visualizando a distribuicao dos passageiros por idade
+plot(titanic.raw$Age, main="Histograma - Distribuicao por Idade",
+xlab="Idade", ylab="Total passageiros",
+ylim=c(0,2000), las=0)
 ```
 
-## Including Plots
+Alguns fatos interessantes que podemos extrair do gráfico são:
+ * Para manter o *titanic* funcionando, era necessária uma tripulação de 885 pessoas, correspondendo à mais de 40% da embarcação;
+ * A terceira classe corresponde à mais de 53% dos passageiros do *titanic* (1a, 2a e 3a classe);
+ * Apenas ~5% dos passageiros da embarcação eram crianças, diferença que é evidenciada no gráfico acima;
+ 
+## Executando o apriori: a primeira experiência
 
-You can also embed plots, for example:
+Execução do algoritmo *apriori* para o dataset *titanic*:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r executeapriori, include=FALSE}
+library(arules)
+rules.all <- apriori(titanic.raw)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Comando para visualizar as regras geradas a partir do algoritmo *apriori*:
+
+```{r inspect_rules}
+inspect(rules.all)
+```
+
+Ordenar os dados a partir do campo suporte:
+
+```{r inspect_rules_by_support}
+rules.sorted <- sort(rules.all, by="support")
+inspect(rules.sorted)
+```
+
+### Q3: Expresse em português como você lê as regras [2] e [3], incluindo a interpretação do suporte e da confiança.
+O suporte corresponde ao total de transações que contém X e Y sobre o total de transações. Logo, em relação ao suporte, para [2] ~75% dos passageiros são homens adultos, e em [3] ~65% dos passageiros eram adultos que não sobreviveram.
+Já a confiança nos informa sobre a confiabilidade da implicação, onde dado X->Y, corresponde às transações que contém X e Y sobre as transações que contém X. Logo, em relação à confiança, em [2] ~96,3% dos homens eram adultos, e em [3] ~96,5% dos passageiros que morreram eram adultos.
+
+### Q4: Você considera que essas duas regras interessante? Justifique sua resposta.
+Sim. A confiança em [3] nos mostra que houveram perdas entre as crianças da embarcação.
+
+### Q5: Procure dentre as regras uma que você considera interessante em relação ao problema de negócio definido. Informe o número da regra escolhida, e justifique sua escolha considerando as métricas de suporte e confiança.
+```
+     lhs                                   rhs           support   confidence lift      count
+[12] {Sex=Female,Survived=Yes}          => {Age=Adult}   0.1435711 0.9186047  0.9664669  316 
+[14] {Class=3rd,Survived=No}            => {Age=Adult}   0.2162653 0.9015152  0.9484870  476 
+```
+
+### Q6: Observe as quatro primeiras regras listadas após o ordenamento por confiança. Você considera que, porque estas regras têm confiança máxima, elas são mais relevantes para sua questão de negócio? Justifique sua resposta.
+
+As quatro primeiras regras não tem relevância para o nosso problema de negócio, pois todas dizem respeito a tripulação do *titanic*. Mesmo assim, podemos inferir é que toda a tripulação era composta de adultos, logo não precisamos nos preocupar com possíveis crianças compondo a tripulação.
+
+```{r inspect_rules_by_confidence}
+rules.sorted <- sort(rules.all, by="confidence")
+inspect(rules.sorted)
+```
+
+## Executando o apriori: testando níveis mínimos de suporte/confiança
+
+**Executando para valores de suporte e confiança mínimos (90%):**
+
+```{r inspect_rules_by_limits2}
+rules.all <- apriori(titanic.raw, parameter = list(supp=0.9, conf=0.9))
+rules.sorted <- sort(rules.all, by="support")
+inspect(rules.sorted)
+```
+
+### Q7: Para suporte e confiança iguais a 90%, alguma regra relevante foi retornada? Por quê?
+Não. Pois a regra só indica que ~95% dos passageiros eram adutos, informação que já podiamos inferir apenas com o sumuário.
+
+**Executando para valores de suporte e confiança mínimos (sup 10% e conf 30%):**
+
+```{r inspect_rules_by_limits3}
+rules.all <- apriori(titanic.raw, parameter = list(supp=0.1, conf=0.3))
+rules.sorted <- sort(rules.all, by="support")
+inspect(rules.sorted)
+```
+
+### Q8: Baixando o suporte e confiança mínimos, apareceram mais regras? Examine as regras [1] a [5], e diga se elas são relevantes para sua questão de negócio, justificando sua resposta
+```
+[1]  {}                                 => {Age=Adult}    0.9504771 0.9504771  1.0000000 2092 
+[5]  {}                                 => {Survived=No}  0.6769650 0.6769650  1.0000000 1490 
+```
+Não são relevantes. Novamente, ambas as regras poderiam ser inferidas apenas com o sumuário.
+
+## Filtrando Regras de interesse
+
+```{r inspect_rules_by_limits}
+rules.all <- apriori(titanic.raw, control=list(verbose=F), parameter=list(minlen=2, supp=0.3, conf=0.6), appearance=list(rhs=c("Survived=No", "Survived=Yes"), default="lhs"))
+quality(rules.all) <- round(quality(rules.all), digits=2)
+rules.sorted <- sort(rules.all, by="support")
+inspect(rules.sorted)
+```
+
+### Q9: As regras resultantes parecem ser mais orientadas ao problema de negócio? Explique sua resposta.
+Sim, pois precisamos de informações detalhadas sobre a classe "Sobrevivente" como consequente. Além disso, o antecedente vazio não tem relevância para o nosso problema de negócio.
+
+### Q10: Por que não temos regras que explicam a sobrevivência? Que parâmetro você poderia alterar para conseguir regras que expliquem a sobrevivência?
+Apenas ~32% dos passageiros do *titanic* sobreviveu. Logo qualquer antecedente que considere "Sobrevivente=True" como consequente deve ter um suporte menor ou igual à ~32%. Contudo, pelo fato de nenhuma regra com este consequente ter sido apresentada, não existe nenhum antecedente diferente de vazio com um consequente "Sobrevivente=True" com suporte maior do que 30%. Podemos reduzir o suporte mínimo para que regras com consequente "Sobrevivente=True" sejam apresentadas. 
+
+### Q11: Existem regras que lhe parecem redundantes entre si? Quais?
+Sim. As seguintes regras:
+```
+[4] {Class=Crew}                    => {Survived=No} 0.31    0.76       1.12  673 
+[5] {Class=Crew,Age=Adult}          => {Survived=No} 0.31    0.76       1.12  673 
+[6] {Class=Crew,Sex=Male}           => {Survived=No} 0.30    0.78       1.15  670 
+[7] {Class=Crew,Sex=Male,Age=Adult} => {Survived=No} 0.30    0.78       1.15  670 
+```
+Aqui temos que 76% da tripulação não sobreviveu [4] e que 76% da tripulação **adulta** não sobreviveu [5]. Como ambas as regras possuem a mesma confiança, podemos inferir que toda a tripulação era adulta. O mesmo ocorre para a tripulação do sexo masculino (regras [6] e [7]).
+
+## Eliminando regras redundantes
+
+```{r inspect_rules_by_red}
+rules.all <- apriori(titanic.raw, control = list(verbose=F), parameter = list(minlen=2,supp=0.05,conf=0.6), appearance = list(rhs=c("Survived=No", "Survived=Yes"), default="lhs"))
+quality(rules.all) <- round(quality(rules.all), digits=3)
+rules.sorted <- sort(rules.all, by="support")
+# Encontrando regras duplicadas
+subset.matrix <- is.subset(rules.sorted,rules.sorted,sparse=FALSE)
+subset.matrix[lower.tri(subset.matrix, diag=T)] <- NA
+redundant <- colSums(subset.matrix, na.rm=T) >= 1
+# Listando as regras redundantes encontradas
+which(redundant)
+# Removendo regras redundantes e listando resultado
+rules.pruned <- rules.sorted[!redundant]
+inspect(rules.pruned)
+```
+
+### Q12: Comparadas com as regras da execução anterior (Q11), cite dois exemplos distintos de redundâncias que foram eliminadas? Explique sua resposta em termo dos itens que aparecem nas regras, e suas métricas.
+```
+{Class=1st,Sex=Female,Survived=Yes} {Class=1st,Sex=Female,Age=Adult,Survived=Yes}
+{Class=1st,Sex=Male,Survived=No}    {Class=1st,Sex=Male,Age=Adult,Survived=No}
+```
+
+## Usando o lift
+
+```{r inspect_rules_by_lift}
+rules.all <- apriori(titanic.raw, control = list(verbose=F),
+parameter = list(minlen=2,supp=0.01,conf=0.5),
+appearance = list(rhs=c("Survived=No",
+"Survived=Yes"),
+default="lhs"))
+quality(rules.all) <- round(quality(rules.all), digits=3)
+rules.sorted <- sort(rules.all, by="lift")
+# Eliminar as regras duplicadas
+subset.matrix <- is.subset(rules.sorted,rules.sorted,sparse=FALSE)
+subset.matrix[lower.tri(subset.matrix, diag=T)] <- NA
+redundant <- colSums(subset.matrix, na.rm=T) >= 1
+rules.pruned <- rules.sorted[!redundant]
+# Examine os resultados
+inspect(rules.pruned)
+```
+
+### Q13: Compare as regras [4] e [17]. Observe que têm confianças parecidas, mas lifts distintos. O que estas regras nos dizem sobre a sobrevivência?
+```
+[4]  {Sex=Female,Age=Adult}         => {Survived=Yes} 0.144   0.744      2.302  316
+[17] {Age=Adult}                    => {Survived=No}  0.653   0.687      1.015 1438 
+```
+A regra [4] diz que 74,4% das mulheres adultas sobreviveram. Já a regra [17], que 68,7% dos adultos não sobreviveram. Embora tenham confianças parecidas, o lift alto de [4] nos traz uma correlação positiva entre antecedente e o consequente, ou seja, o fato da passageira ser mulher e adulta aumenta a probabilidade desta passageira ter sobrevivido. Já o lift de [17] próximo de 1 nos dá uma baixa correlação entre o antecedente e o consequente, ou seja, pouco podemos dizer sobre um passageiro que é apenas adulto. 
+
+### Q14: Compare as regras [3] e [18]. Embora elas tenham confiança um pouco distintas, o que os respectivos lifts nos dizem sobre a não sobrevivência?
+```
+[3]  {Class=2nd,Sex=Female}         => {Survived=Yes} 0.042   0.877      2.716   93  
+[18] {Class=2nd}                    => {Survived=No}  0.076   0.586      0.866  167 
+```
+
+Em [3], lift positivo nos diz que mulheres da 2a classe tem uma grande probabilidade ter sobrevivido. O lift negativo (<1) de [18] nos mostra uma correlação negativa entre o antecedente e o consequente, logo, o fato de o passageiro ser de 2a classe **diminui** a probabilidade que ele não tenha sobrevivido.
+
+### Q15: Com base nestas regras, liste 5 coisas que podem ser inferidas dos dados sobre sobreviventes e não sobreviventes do Titanic com o uso de regras de associação.
+```
+[1]  {Class=2nd,Age=Child}          => {Survived=Yes} 0.011   1.000      3.096   24 
+[2]  {Class=1st,Sex=Female}         => {Survived=Yes} 0.064   0.972      3.010  141 
+[3]  {Class=2nd,Sex=Female}         => {Survived=Yes} 0.042   0.877      2.716   93 
+[4]  {Sex=Female,Age=Adult}         => {Survived=Yes} 0.144   0.744      2.302  316 
+[7]  {Age=Child}                    => {Survived=Yes} 0.026   0.523      1.619   57 
+```
+[1] Todas as crianças da 2a classe sobreviveram;
+[2] 97,2% das mulheres da 1a classe sobreviveram;
+[3] 87,7% das mulheres da 2a classe sobreviveram;
+[4] 74,4% das mulheres adultas sobreviveram;
+[7] 52,3% das crianças sobreviveram;
+
+## Cuidados ao Interpretar Regras
+
+### Q16: crianças da segunda classe tiveram mais chances de sobrevivência do que as da primeira classe?
+Não. Não podemos inferir nada sobre as crianças da primeira classe. Mas sabemos através da regra [1] e [7] que 33 crianças da 1a ou 3a classe sobreviveram.
+
+### Q17: Responda novamente à questão Q18 utilizando as métricas de suporte/confiança para justificar sua reposta. E as crianças da terceira classe? Como sua situação se compara (a) à das demais crianças?
+
+```{r inspect_rules_by_cf}
+rules <- apriori(titanic.raw,
+parameter = list(minlen=3, supp=0.002, conf=0.3),
+appearance = list(rhs=c("Survived=Yes"),
+lhs=c("Class=1st", "Class=2nd",
+"Class=3rd",
+"Age=Child", "Age=Adult"),
+default="none"),
+control = list(verbose=F))
+rules.sorted <- sort(rules, by="confidence")
+inspect(rules.sorted)
+```
+
+Apenas 34% das crianças da 1a classe sobreviveram, enquanto todas as crianças da 1a e 2a classe sobreviveram.
+
+### Q18: Procure as três regras com o lift mais alto: quais perfis tiveram maior probabilidade de sobrevivência?
+
+Da execução acima:
+```
+    lhs                      rhs            support     confidence lift     count
+[1] {Class=2nd,Age=Child}  => {Survived=Yes} 0.010904134 1.0000000  3.095640  24  
+[2] {Class=1st,Age=Child}  => {Survived=Yes} 0.002726034 1.0000000  3.095640   6 
+[3] {Class=1st,Age=Adult}  => {Survived=Yes} 0.089504771 0.6175549  1.911727 197  
+```
+
+ * Crianças da 1a classe;
+ * Crianças da 2a classe;
+ * Adultos da 1a classe;
+
+Considerando as execuções anteriores:
+```
+    lhs                      rhs            support     confidence lift     count
+[1] {Class=2nd,Age=Child}  => {Survived=Yes} 0.010904134 1.0000000  3.095640  24  
+[2] {Class=1st,Age=Child}  => {Survived=Yes} 0.002726034 1.0000000  3.095640   6 
+[2] {Class=1st,Sex=Female} => {Survived=Yes} 0.064       0.972      3.010    141 
+[3] {Class=2nd,Sex=Female} => {Survived=Yes} 0.042       0.877      2.716     93
+```
+
+ * Crianças da 1a classe;
+ * Crianças da 2a classe;
+ * Mulheres da 1a classe;
+ * Mulheres da 2a classe;
+
+---
